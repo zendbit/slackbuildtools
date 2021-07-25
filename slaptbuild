@@ -13,7 +13,7 @@
 ##
 
 # check if run as root
-if [ "$EUID" -ne 0 ]
+if [[ "$EUID" -ne 0 ]]
   then echo "Please run as root"
   exit
 fi
@@ -25,19 +25,19 @@ OUTPUT=/tmp
 TAG=_SBo
 PKGTYPE=tgz
 
-if [ ! -f $SLACKBUILD_DB ]
+if [[ ! -f $SLACKBUILD_DB ]]
 then
   touch $SLACKBUILD_DB
 fi
 
-if [ ! -f $SLACKBUILD_INSTALLED_DB ]
+if [[ ! -f $SLACKBUILD_INSTALLED_DB ]]
 then
   touch $SLACKBUILD_INSTALLED_DB
 fi
 
 update_pkg()
 {
-  if [ ! -d $SLACKBUILD_DIR ]
+  if [[ ! -d $SLACKBUILD_DIR ]]
   then
     echo "## get current slackbuild tree from git://git.slackbuilds.org/slackbuilds.git..."
     cd /usr
@@ -88,7 +88,7 @@ info_pkg()
   do
     prgpath=${line[0]}
     prgnam=${line[1]}
-    if [ "$prgnam" == "$1" ]
+    if [[ "$prgnam" = "$1" ]]
     then
       cat $prgpath/"slack-desc"
     fi
@@ -99,13 +99,13 @@ info_pkg()
 remove_pkg()
 {
   echo "## removing installed package contains ${@:2}..."
-  if [ $# -ge 2 ]
+  if [[ $# -ge 2 ]]
   then
     for pkg in ${@:2}
     do
       while IFS=' ' read -ra line
       do
-        if [[ "${line[0]}" == "$pkg" ]]
+        if [[ "${line[0]}" = "$pkg" ]]
         then
           echo ">> remove package $pkg..."
           /sbin/removepkg ${line[1]}
@@ -117,7 +117,7 @@ remove_pkg()
   fi
 
   # udpate installed db
-  if [ -f $SLACKBUILD_INSTALLED_DB.new ]
+  if [[ -f $SLACKBUILD_INSTALLED_DB.new ]]
   then
     cp $SLACKBUILD_INSTALLED_DB.new $SLACKBUILD_INSTALLED_DB
   fi
@@ -136,7 +136,7 @@ install_pkg()
       prgnam=${line[1]}
       version=${line[2]}
       
-      if [ "$prgnam" == "$prg" ]
+      if [[ "$prgnam" = "$prg" ]]
       then
         # get package info
         source $prgpath/$prgnam.info
@@ -151,16 +151,16 @@ install_pkg()
 
         # download source for build process
         downloads=""
-        if [ ! "${DOWNLOAD,,}" == "unsupported" ]
+        if [[ ! "${DOWNLOAD,,}" = "unsupported" ]]
         then
           download=$DOWNLOAD
-        elif [ ! "${DOWNLOAD_x86_64,,}" == "unsupported" ]
+        elif [[ ! "${DOWNLOAD_x86_64,,}" = "unsupported" ]]
         then
           download=$DOWNLOAD_x86_64
-        elif [ ! "${DOWNLOAD_i586,,}" == "unsupported" ]
+        elif [[ ! "${DOWNLOAD_i586,,}" = "unsupported" ]]
         then
           download=$DOWNLOAD_i586
-        elif [ ! "${DOWNLOAD_i586,,}" == "unsupported" ]
+        elif [[ ! "${DOWNLOAD_i586,,}" = "unsupported" ]]
         then
           download=$DOWNLOAD_i686
         fi
@@ -174,7 +174,7 @@ install_pkg()
         pkgout=`ls $OUTPUT|grep $PRGNAM-$VERSION|grep $TAG|grep $PKGTYPE|xargs`
 
         # if there are no errors
-        if [ $? -eq 0 ] && [ -n $pkgout ]
+        if [[ $? -eq 0 ]] && [[ -n $pkgout ]]
         then
           # check if package already installed
           # if so do reinstall or upgrade or downgrade
@@ -189,7 +189,7 @@ install_pkg()
 
           ## update installed app list
           installed=$(cat $SLACKBUILD_INSTALLED_DB|awk '{print $1 $2}'|grep -w "$prgnam $version"|xargs)
-          if [ -z $installed ]
+          if [[ -z $installed ]]
           then
             echo $PRGNAM $pkgout >> $SLACKBUILD_INSTALLED_DB
           fi
@@ -221,7 +221,7 @@ upgrade_pkg()
 installed_pkg()
 {
   echo "## finding installed package contains ${@:2}..."
-  if [ $# -lt 2 ]
+  if [[ $# -lt 2 ]]
   then
     cat $SLACKBUILD_INSTALLED_DB
   else
