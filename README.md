@@ -1,3 +1,17 @@
+### installation
+the installation not required headache dependencies only need extract tool (tar), wget
+- dowload source
+- copy file to /usr/sbin
+- set as executable
+- done!
+```
+# get from stable version https://github.com/zendbit/slaptbuild/archive/refs/tags/vx.x.x.tar.gz
+> wget https://github.com/zendbit/slaptbuild/archive/refs/tags/v0.0.1.tar.gz
+> tar -xvf v0.0.1.tar.gz
+> cp slaptbuild-0.0.1/slaptbuild /usr/sbin
+> chmod +x /usr/sbin/slaptbuild
+```
+
 ### slaptbuild
 slaptbuild is simple wrapper for managing slackbuild.org tree. This application not offically related with slackbuild.org
 
