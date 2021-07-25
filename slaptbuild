@@ -1,0 +1,287 @@
+#!/bin/bash
+##
+## this package is free software and free to use
+## slaptbuild application has no official relation with slackbuild.org
+## this is just tool for managing slaptbuild tree and run on top of slackbuild tree
+## license to GPLV3
+##
+## bugs report to
+## author : amru.rosyada@gmail.com
+## git    : https://github.com/zendbit/slaptbuild
+##
+## contribution are welcome, free to modified
+##
+
+
+# check if run as root
+if [ "$EUID" -ne 0 ]
+  then echo "Please run as root"
+  exit
+fi
+
+SLACKBUILD_DIR=/usr/slackbuilds
+SLACKBUILD_DB=/usr/slackbuilds/slackbuilds.db.txt
+SLACKBUILD_INSTALLED_DB=/usr/slackbuilds/slackbuilds.installed.db.txt
+
+if [ ! -f $SLACKBUILD_DB ]
+then
+  touch $SLACKBUILD_DB
+fi
+
+if [ ! -f $SLACKBUILD_INSTALLED_DB ]
+then
+  touch $SLACKBUILD_INSTALLED_DB
+fi
+
+update_pkg()
+{
+  if [ ! -d $SLACKBUILD_DIR ]
+  then
+    echo "## get current slackbuild tree from git://git.slackbuilds.org/slackbuilds.git..."
+    cd /usr
+    git clone git://git.slackbuilds.org/slackbuilds.git
+    cd - &> /dev/null
+    echo "## finished."
+  else
+    echo "## pulling current slackbuild tree from git://git.slackbuilds.org/slackbuilds.git..."
+    cd $SLACKBUILD_DIR
+    git pull
+    cd - &> /dev/null
+    echo "## finished."
+  fi
+
+  echo "## generating $SLACKBUILD_DB..."
+  rm -f $SLACKBUILD_DB
+
+  for catDir in $SLACKBUILD_DIR/*/*/
+  do
+    pkgDir=${catDir%*/}
+    source "$catDir${pkgDir##*/}.info"
+    echo "$pkgDir $PRGNAM $VERSION" >> $SLACKBUILD_DB
+  done
+  echo "## finished."
+}
+
+search_pkg()
+{
+  echo "## finding package contains ${@:2}..."
+  
+  for param in ${@:2}
+  do
+    while IFS=' ' read -ra line
+    do
+      if [[ "${line,,}" =~ .*"${param,,}".* ]]
+      then
+        echo ">> ${line[1]} ${line[2]} ${line[0]}"
+      fi
+    done < $SLACKBUILD_DB
+  done
+  echo "## finished."
+}
+
+info_pkg()
+{
+  echo "## get package info of $1..."
+  while IFS=' ' read -ra line
+  do
+    prgpath=${line[0]}
+    prgnam=${line[1]}
+    if [ "$prgnam" == "$1" ]
+    then
+      cat $prgpath/"slack-desc"
+    fi
+  done < $SLACKBUILD_DB
+  echo "## finished."
+}
+
+remove_pkg()
+{
+  echo "## removing installed package contains ${@:2}..."
+  if [ $# -ge 2 ]
+  then
+    for pkg in ${@:2}
+    do
+      while IFS=' ' read -ra line
+      do
+        if [[ "${line[0]}" == "$pkg" ]]
+        then
+          echo ">> remove package $pkg..."
+          /sbin/removepkg ${line[1]}
+          cat $SLACKBUILD_INSTALLED_DB|grep -v -w $pkg > $SLACKBUILD_INSTALLED_DB.new
+          echo ">> finished."
+        fi
+      done < $SLACKBUILD_INSTALLED_DB
+    done
+  fi
+
+  # udpate installed db
+  if [ -f $SLACKBUILD_INSTALLED_DB.new ]
+  then
+    cp $SLACKBUILD_INSTALLED_DB.new $SLACKBUILD_INSTALLED_DB
+  fi
+
+  echo "## finished."
+}
+
+install_pkg()
+{
+  echo "## installing ${@:2}..."
+  cdir=$(pwd)
+  for prg in ${@:2}
+  do
+    while IFS=' ' read -ra line
+    do
+      prgpath=${line[0]}
+      prgnam=${line[1]}
+      version=${line[2]}
+      
+      if [ "$prgnam" == "$prg" ]
+      then
+        # get package info
+        cd $prgpath
+        source $prgnam.info
+
+        # if package has same name and version skip it
+        installed=$(cat $SLACKBUILD_INSTALLED_DB|awk '{print $1" "$2}'|grep -w "$prgnam $prgnam-$version"|xargs)
+        if [[ -n $installed ]]
+        then
+          echo ">> $prgnam $version already installed."
+          break
+        fi
+
+        # download source for build process
+        downloads=""
+        if [ ! "${DOWNLOAD,,}" == "unsupported" ]
+        then
+          download=$DOWNLOAD
+        elif [ ! "${DOWNLOAD_x86_64,,}" == "unsupported" ]
+        then
+          download=$DOWNLOAD_x86_64
+        elif [ ! "${DOWNLOAD_i586,,}" == "unsupported" ]
+        then
+          download=$DOWNLOAD_i586
+        elif [ ! "${DOWNLOAD_i586,,}" == "unsupported" ]
+        then
+          download=$DOWNLOAD_i686
+        fi
+        
+        wget -c -t inv $download
+
+        # do slackbuild process
+        source $prgnam.SlackBuild
+       
+        # if there are no errors
+        if [ $? -eq 0 ]
+        then
+          # check if package already installed
+          # if so do reinstall or upgrade or downgrade
+          installed=$(cat $SLACKBUILD_INSTALLED_DB|awk '{print $1}'|grep -w "$prgnam"|xargs)
+          if [[ -n $installed ]]
+          then
+            remove_pkg "" $prgnam
+          fi
+
+          # install package if success
+          pkgnam=$PRGNAM-$VERSION-$ARCH-$BUILD$TAG.$PKGTYPE
+          pkgout=$OUTPUT/$pkgnam
+          /sbin/installpkg $pkgout
+
+          ## update installed app list
+          installed=$(cat $SLACKBUILD_INSTALLED_DB|grep $pkgnam|xargs)
+          installed=$(cat $SLACKBUILD_INSTALLED_DB|awk '{print $1 $2}'|grep -w "$prgnam $version"|xargs)
+          if [ -z $installed ]
+          then
+            echo $PRGNAM $pkgnam >> $SLACKBUILD_INSTALLED_DB
+          fi
+
+          cd $prgpath
+          ## remove downloaded source if success
+          arr_download=( $downloads )
+          for download in "${arr_download[@]}"
+          do
+            rm -f ${download##*/}
+          done
+          cd - &> /dev/null
+        fi
+      fi
+    done < $SLACKBUILD_DB
+  done
+  cd $cdir &> /dev/null
+  echo "## finished."
+}
+
+upgrade_pkg()
+{
+  echo "## upgrade installed package..."
+  while IFS= read -ra line
+  do
+    install_pkg "" ${line[0]}
+  done < $SLACKBUILD_INSTALLED_DB
+  echo "# finished.#"
+}
+
+installed_pkg()
+{
+  echo "## finding installed package contains ${@:2}..."
+  if [ $# -lt 2 ]
+  then
+    cat $SLACKBUILD_INSTALLED_DB
+  else
+    for pkg in ${@:2}
+    do
+      while IFS= read -r line
+      do
+        if [[ "${line,,}" =~ .*"${pkg,,}".* ]]
+        then
+          echo ">> $line"
+        fi
+      done < $SLACKBUILD_INSTALLED_DB
+    done
+  fi
+  echo "## finished."
+}
+
+manual ()
+{
+  echo ""
+  echo "## usages"
+  echo ""
+  echo "slaptbuild [options] [parameters]"
+  echo ""
+  echo "options:"
+  echo "  update    : update git from slaptbuild then rebuild the db, ex: slaptbuild update"
+  echo "  search    : search package(s), ex: slaptbuild search zoom-linux xfce4 etc."
+  echo "  install   : install package(s), ex: slaptbuild install zoom-linux xfce4 etc."
+  echo "  remove    : remove package(s), ex: slaptbuild remove zoom-linux xfce4 etc."
+  echo "  info      : show package info, ex: slaptbuild info zoom-linux"
+  echo "  installed : show installed package(s), ex: slaptbuild installed [xfce4 zoom-linux etc]"
+  echo "  upgrade   : upgrade installed package, ex: slaptbuild upgrade"
+  echo ""
+}
+
+case $1 in
+  update)
+    update_pkg
+    ;;
+  search)
+    search_pkg $@
+    ;;
+  info)
+    info_pkg $2
+    ;;
+  install)
+    install_pkg $@
+    ;;
+  installed)
+    installed_pkg $@
+    ;;
+  remove)
+    remove_pkg $@
+    ;;
+  upgrade)
+    upgrade_pkg $@
+    ;;
+  *)
+    manual
+    ;;
+esac
