@@ -12,7 +12,6 @@
 ## contribution are welcome, free to modified
 ##
 
-
 # check if run as root
 if [ "$EUID" -ne 0 ]
   then echo "Please run as root"
@@ -22,6 +21,9 @@ fi
 SLACKBUILD_DIR=/usr/slackbuilds
 SLACKBUILD_DB=/usr/slackbuilds/slackbuilds.db.txt
 SLACKBUILD_INSTALLED_DB=/usr/slackbuilds/slackbuilds.installed.db.txt
+OUTPUT=/tmp
+TAG=_SBo
+PKGTYPE=tgz
 
 if [ ! -f $SLACKBUILD_DB ]
 then
@@ -126,7 +128,6 @@ remove_pkg()
 install_pkg()
 {
   echo "## installing ${@:2}..."
-  cdir=$(pwd)
   for prg in ${@:2}
   do
     while IFS=' ' read -ra line
@@ -138,8 +139,7 @@ install_pkg()
       if [ "$prgnam" == "$prg" ]
       then
         # get package info
-        cd $prgpath
-        source $prgnam.info
+        source $prgpath/$prgnam.info
 
         # if package has same name and version skip it
         installed=$(cat $SLACKBUILD_INSTALLED_DB|awk '{print $1" "$2}'|grep -w "$prgnam $prgnam-$version"|xargs)
@@ -165,13 +165,16 @@ install_pkg()
           download=$DOWNLOAD_i686
         fi
         
-        wget -c -t inv $download
+        wget -P $prgpath -c -t inv $download
 
         # do slackbuild process
-        source $prgnam.SlackBuild
+        bash $prgpath/$prgnam.SlackBuild
        
+        # check if package already generated
+        pkgout=`ls $OUTPUT|grep $PRGNAM-$VERSION|grep $TAG|grep $PKGTYPE|xargs`
+
         # if there are no errors
-        if [ $? -eq 0 ]
+        if [ $? -eq 0 ] && [ -n $pkgout ]
         then
           # check if package already installed
           # if so do reinstall or upgrade or downgrade
@@ -182,31 +185,26 @@ install_pkg()
           fi
 
           # install package if success
-          pkgnam=$PRGNAM-$VERSION-$ARCH-$BUILD$TAG.$PKGTYPE
-          pkgout=$OUTPUT/$pkgnam
-          /sbin/installpkg $pkgout
+          /sbin/installpkg $OUTPUT/$pkgout
 
           ## update installed app list
-          installed=$(cat $SLACKBUILD_INSTALLED_DB|grep $pkgnam|xargs)
           installed=$(cat $SLACKBUILD_INSTALLED_DB|awk '{print $1 $2}'|grep -w "$prgnam $version"|xargs)
           if [ -z $installed ]
           then
-            echo $PRGNAM $pkgnam >> $SLACKBUILD_INSTALLED_DB
+            echo $PRGNAM $pkgout >> $SLACKBUILD_INSTALLED_DB
           fi
 
-          cd $prgpath
           ## remove downloaded source if success
           arr_download=( $downloads )
           for download in "${arr_download[@]}"
           do
-            rm -f ${download##*/}
+            rm -f $prgpath/${download##*/}
           done
           cd - &> /dev/null
         fi
       fi
     done < $SLACKBUILD_DB
   done
-  cd $cdir &> /dev/null
   echo "## finished."
 }
 
