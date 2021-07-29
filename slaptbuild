@@ -179,7 +179,7 @@ install_sbo()
         fi
     
         blacklisted=`cat $SLAPTBUILD_BLACKLIST_DB|grep -e "^${prgnam}$"|xargs`
-        if [[ -n $blacklisted ]] && [[ -n $installed ]]
+        if [[ -n $blacklisted ]]
         then
           echo ">> skip, $prgnam blacklisted."
           break
