@@ -19,23 +19,30 @@ if [[ "$EUID" -ne 0 ]]
 fi
 
 SLACKBUILD_DIR=/usr/slackbuilds
-SLACKBUILD_DB=/usr/slackbuilds/slackbuilds.db.txt
-SLACKBUILD_INSTALLED_DB=/usr/slackbuilds/slackbuilds.installed.db.txt
+SLAPTBUILD_DIR=/usr/slaptbuild
+SLAPTBUILD_DB=$SLAPTBUILD_DIR/slackbuilds.db
+SLAPTBUILD_INSTALLED_DB=$SLAPTBUILD_DIR/slackbuilds.installed.db
+SLAPTBUILD_BLACKLIST_DB=$SLAPTBUILD_DIR/slackbuilds.blacklist.db
 OUTPUT=/tmp
 TAG=_SBo
 PKGTYPE=tgz
 
-if [[ ! -f $SLACKBUILD_DB ]]
+if [[ ! -f $SLAPTBUILD_DB ]]
 then
-  touch $SLACKBUILD_DB
+  touch $SLAPTBUILD_DB
 fi
 
-if [[ ! -f $SLACKBUILD_INSTALLED_DB ]]
+if [[ ! -f $SLAPTBUILD_INSTALLED_DB ]]
 then
-  touch $SLACKBUILD_INSTALLED_DB
+  touch $SLAPTBUILD_INSTALLED_DB
 fi
 
-update_pkg()
+if [[ ! -f $SLAPTBUILD_BLACKLIST_DB ]]
+then
+  touch $SLAPTBUILD_BLACKLIST_DB
+fi
+
+update_sbo()
 {
   if [[ ! -d $SLACKBUILD_DIR ]]
   then
@@ -52,19 +59,19 @@ update_pkg()
     echo "## finished."
   fi
 
-  echo "## generating $SLACKBUILD_DB..."
-  rm -f $SLACKBUILD_DB
+  echo "## generating $SLAPTBUILD_DB..."
+  rm -f $SLAPTBUILD_DB
 
   for catDir in $SLACKBUILD_DIR/*/*/
   do
     pkgDir=${catDir%*/}
     source "$catDir${pkgDir##*/}.info"
-    echo "$pkgDir $PRGNAM $VERSION" >> $SLACKBUILD_DB
+    echo "$pkgDir $PRGNAM $VERSION" >> $SLAPTBUILD_DB
   done
   echo "## finished."
 }
 
-search_pkg()
+search_sbo()
 {
   echo "## finding package contains ${@:2}..."
   
@@ -76,12 +83,12 @@ search_pkg()
       then
         echo ">> ${line[1]} ${line[2]} ${line[0]}"
       fi
-    done < $SLACKBUILD_DB
+    done < $SLAPTBUILD_DB
   done
   echo "## finished."
 }
 
-info_pkg()
+info_sbo()
 {
   echo "## get package info of $1..."
   while IFS=' ' read -ra line
@@ -92,11 +99,11 @@ info_pkg()
     then
       cat $prgpath/"slack-desc"
     fi
-  done < $SLACKBUILD_DB
+  done < $SLAPTBUILD_DB
   echo "## finished."
 }
 
-remove_pkg()
+remove_sbo()
 {
   echo "## removing installed package contains ${@:2}..."
   if [[ $# -ge 2 ]]
@@ -109,23 +116,45 @@ remove_pkg()
         then
           echo ">> remove package $pkg..."
           /sbin/removepkg ${line[1]}
-          cat $SLACKBUILD_INSTALLED_DB|grep -v -w $pkg > $SLACKBUILD_INSTALLED_DB.new
+          cat $SLAPTBUILD_INSTALLED_DB|grep -v -w $pkg|grep -e "\S" > $SLAPTBUILD_INSTALLED_DB.new
           echo ">> finished."
         fi
-      done < $SLACKBUILD_INSTALLED_DB
+      done < $SLAPTBUILD_INSTALLED_DB
     done
   fi
 
   # udpate installed db
-  if [[ -f $SLACKBUILD_INSTALLED_DB.new ]]
+  if [[ -f $SLAPTBUILD_INSTALLED_DB.new ]]
   then
-    cp $SLACKBUILD_INSTALLED_DB.new $SLACKBUILD_INSTALLED_DB
+    cp $SLAPTBUILD_INSTALLED_DB.new $SLAPTBUILD_INSTALLED_DB
   fi
 
   echo "## finished."
 }
 
 install_pkg()
+{
+  echo "## installing ${@:2}..."
+  for pkg in ${@:2}
+  do
+    if [[ -f $pkg ]]
+    then
+      installpkg $pkg
+      if [[ $? -eq 0 ]]
+      then
+        pkgnam=`basename $pkg|xargs`
+        prgnam=`sed 's/\-[0-9]\+\.[0-9]\+.*$//g' <<< $pkgnam|xargs`
+        if [[ $? -eq 0 ]] && [[ -n $prgnam ]] && [[ -n $pkgnam ]]
+        then
+          echo $prgnam $pkgnam >> $SLAPTBUILD_INSTALLED_DB
+        fi
+      fi
+    fi
+  done
+  echo "## finished."
+}
+
+install_sbo()
 {
   echo "## installing ${@:2}..."
   for prg in ${@:2}
@@ -142,10 +171,17 @@ install_pkg()
         source $prgpath/$prgnam.info
 
         # if package has same name and version skip it
-        installed=$(cat $SLACKBUILD_INSTALLED_DB|awk '{print $1" "$2}'|grep -w "$prgnam $prgnam-$version"|xargs)
+        installed=$(cat $SLAPTBUILD_INSTALLED_DB|awk '{print $1" "$2}'|grep -w "$prgnam $prgnam-$version"|xargs)
         if [[ -n $installed ]]
         then
           echo ">> $prgnam $version already installed."
+          break
+        fi
+    
+        blacklisted=`cat $SLAPTBUILD_BLACKLIST_DB|grep -e "^${prgnam}$"|xargs`
+        if [[ -n $blacklisted ]] && [[ -n $installed ]]
+        then
+          echo ">> skip, $prgnam blacklisted."
           break
         fi
 
@@ -178,20 +214,20 @@ install_pkg()
         then
           # check if package already installed
           # if so do reinstall or upgrade or downgrade
-          installed=$(cat $SLACKBUILD_INSTALLED_DB|awk '{print $1}'|grep -w "$prgnam"|xargs)
+          installed=$(cat $SLAPTBUILD_INSTALLED_DB|awk '{print $1}'|grep -w "$prgnam"|xargs)
           if [[ -n $installed ]]
           then
-            remove_pkg "" $prgnam
+            remove_sbo "" $prgnam
           fi
 
           # install package if success
           /sbin/installpkg $OUTPUT/$pkgout
 
           ## update installed app list
-          installed=$(cat $SLACKBUILD_INSTALLED_DB|awk '{print $1 $2}'|grep -w "$prgnam $version"|xargs)
+          installed=$(cat $SLAPTBUILD_INSTALLED_DB|awk '{print $1 $2}'|grep -w "$prgnam $version"|grep -e "\S"|xargs)
           if [[ -z $installed ]]
           then
-            echo $PRGNAM $pkgout >> $SLACKBUILD_INSTALLED_DB
+            echo $PRGNAM $pkgout >> $SLAPTBUILD_INSTALLED_DB
           fi
 
           ## remove downloaded source if success
@@ -203,27 +239,69 @@ install_pkg()
           cd - &> /dev/null
         fi
       fi
-    done < $SLACKBUILD_DB
+    done < $SLAPTBUILD_DB
   done
   echo "## finished."
 }
 
-upgrade_pkg()
+upgrade_sbo()
 {
   echo "## upgrade installed package..."
   while IFS= read -ra line
   do
-    install_pkg "" ${line[0]}
-  done < $SLACKBUILD_INSTALLED_DB
-  echo "# finished.#"
+    install_sbo "" ${line[0]}
+  done < $SLAPTBUILD_INSTALLED_DB
+  echo "## finished."
 }
 
-installed_pkg()
+locked_pkg()
 {
-  echo "## finding installed package contains ${@:2}..."
+  echo "## change package ${@:2} lock state..."
+  for pkg in ${@:2}
+  do
+    installed=$(cat $SLAPTBUILD_INSTALLED_DB|awk '{print $1}'|grep -w "$pkg"|xargs)
+    if [[ -z $installed ]]
+    then
+      continue
+    fi
+
+    locktype=""
+    if [[ "$1" = "whitelist" ]] || [[ "$1" = "blacklist" ]]
+    then
+      locktype="$1"
+    fi
+
+    blacklisted=`cat $SLAPTBUILD_BLACKLIST_DB|grep -e "^${pkg}$"|xargs`
+    case $locktype in
+      whitelist)
+        if [[ -n $blacklisted ]]
+        then
+          echo "$pkg whitelisted."
+          cat $SLAPTBUILD_BLACKLIST_DB|grep -v -e "^${pkg}$"|grep -e "\S" > $SLAPTBUILD_BLACKLIST_DB.new
+          cp $SLAPTBUILD_BLACKLIST_DB.new $SLAPTBUILD_BLACKLIST_DB
+        fi
+        ;;
+      blacklist)
+        if [[ -z $blacklisted ]]
+        then
+          echo "$pkg blacklisted."
+          echo $pkg >> $SLAPTBUILD_BLACKLIST_DB
+        fi
+        ;;
+    esac
+  done
+  echo "## finished."
+}
+
+blacklisted_pkg()
+{
+  echo "## finding blacklisted package contains ${@:2}..."
   if [[ $# -lt 2 ]]
   then
-    cat $SLACKBUILD_INSTALLED_DB
+    while IFS= read -r line
+    do
+      echo ">> $line"
+    done < $SLAPTBUILD_BLACKLIST_DB
   else
     for pkg in ${@:2}
     do
@@ -233,7 +311,31 @@ installed_pkg()
         then
           echo ">> $line"
         fi
-      done < $SLACKBUILD_INSTALLED_DB
+      done < $SLAPTBUILD_BLACKLIST_DB
+    done
+  fi
+  echo "## finished."
+}
+
+installed_sbo()
+{
+  echo "## finding installed package contains ${@:2}..."
+  if [[ $# -lt 2 ]]
+  then
+    while IFS= read -r line
+    do
+      echo ">> $line"
+    done < $SLAPTBUILD_INSTALLED_DB
+  else
+    for pkg in ${@:2}
+    do
+      while IFS= read -r line
+      do
+        if [[ "${line,,}" =~ .*"${pkg,,}".* ]]
+        then
+          echo ">> $line"
+        fi
+      done < $SLAPTBUILD_INSTALLED_DB
     done
   fi
   echo "## finished."
@@ -247,37 +349,50 @@ manual ()
   echo "slaptbuild [options] [parameters]"
   echo ""
   echo "options:"
-  echo "  update    : update git from slaptbuild then rebuild the db, ex: slaptbuild update"
-  echo "  search    : search package(s), ex: slaptbuild search zoom-linux xfce4 etc."
-  echo "  install   : install package(s), ex: slaptbuild install zoom-linux xfce4 etc."
-  echo "  remove    : remove package(s), ex: slaptbuild remove zoom-linux xfce4 etc."
-  echo "  info      : show package info, ex: slaptbuild info zoom-linux"
-  echo "  installed : show installed package(s), ex: slaptbuild installed [xfce4 zoom-linux etc]"
-  echo "  upgrade   : upgrade installed package, ex: slaptbuild upgrade"
+  echo "  update      : update git from slaptbuild then rebuild the db, ex: slaptbuild update"
+  echo "  search      : search package(s), ex: slaptbuild search zoom-linux xfce4 etc."
+  echo "  install     : install package(s), ex: slaptbuild install zoom-linux xfce4 etc."
+  echo "  installpkg  : install package(s) directly .tgz .txz."
+  echo "  remove      : remove package(s), ex: slaptbuild remove zoom-linux xfce4 etc."
+  echo "  info        : show package info, ex: slaptbuild info zoom-linux"
+  echo "  installed   : show installed package(s), ex: slaptbuild installed [xfce4 zoom-linux etc]"
+  echo "  upgrade     : upgrade installed package, ex: slaptbuild upgrade"
+  echo "  blacklist   : blacklist package left it unmodified, ex: slaptbuild blacklist ostree gstreamer"
+  echo "  whitelist   : whitelist package allow to modify, ex: slaptbuild whitelist ostree gstreamer"
+  echo "  blacklisted : show backlisted package"
   echo ""
 }
 
 case $1 in
   update)
-    update_pkg
+    update_sbo
     ;;
   search)
-    search_pkg $@
+    search_sbo $@
     ;;
   info)
-    info_pkg $2
+    info_sbo $2
     ;;
   install)
+    install_sbo $@
+    ;;
+  installpkg)
     install_pkg $@
     ;;
   installed)
-    installed_pkg $@
+    installed_sbo $@
+    ;;
+  whitelist|blacklist)
+    locked_pkg $@
+    ;;
+  blacklisted)
+    blacklisted_pkg $@
     ;;
   remove)
-    remove_pkg $@
+    remove_sbo $@
     ;;
   upgrade)
-    upgrade_pkg $@
+    upgrade_sbo $@
     ;;
   *)
     manual
