@@ -2,7 +2,7 @@
 slaptbuild is simple wrapper for managing slackbuild.org tree. This application not offically related with slackbuild.org
 
 ### installation
-the installation not required headache dependencies only need extract tool (tar), wget
+the installation not required headache dependencies only need extract tool (tar), wget, git, sed, grep
 - dowload source
 - copy file to /usr/sbin/
 - set as executable
