@@ -45,3 +45,6 @@ slaptbuild update
 ```
 slaptbuild install dos2unix double-conversion potrace gdl inkscape
 ```
+### what todo next?
+- resolving dependencies when installing package, any suggestion? using formula like homebrew?
+- this version only support for slackware current (slackbuilds master) aka rolling release
