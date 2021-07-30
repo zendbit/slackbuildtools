@@ -259,7 +259,8 @@ locked_pkg()
   echo "## change package ${@:2} lock state..."
   for pkg in ${@:2}
   do
-    installed=$(cat $SLAPTBUILD_INSTALLED_DB|awk '{print $1}'|grep -w "$pkg"|xargs)
+    pkgnam=`basename $pkg|sed 's/\-[0-9]\+\.[0-9]\+.*$//g'|xargs`
+    installed=$(cat $SLAPTBUILD_INSTALLED_DB|awk '{print $1}'|grep -e "^${pkgnam}$"|xargs)
     if [[ -z $installed ]]
     then
       continue
@@ -270,22 +271,22 @@ locked_pkg()
     then
       locktype="$1"
     fi
-
-    blacklisted=`cat $SLAPTBUILD_BLACKLIST_DB|grep -e "^${pkg}$"|xargs`
+    
+    blacklisted=`cat $SLAPTBUILD_BLACKLIST_DB|grep -e "^${pkgnam}$"|xargs`
     case $locktype in
       whitelist)
         if [[ -n $blacklisted ]]
         then
-          echo "$pkg whitelisted."
-          cat $SLAPTBUILD_BLACKLIST_DB|grep -v -e "^${pkg}$"|grep -e "\S" > $SLAPTBUILD_BLACKLIST_DB.new
+          echo "$pkgnam whitelisted."
+          cat $SLAPTBUILD_BLACKLIST_DB|grep -v -e "^${pkgnam}$"|grep -e "\S" > $SLAPTBUILD_BLACKLIST_DB.new
           cp $SLAPTBUILD_BLACKLIST_DB.new $SLAPTBUILD_BLACKLIST_DB
         fi
         ;;
       blacklist)
         if [[ -z $blacklisted ]]
         then
-          echo "$pkg blacklisted."
-          echo $pkg >> $SLAPTBUILD_BLACKLIST_DB
+          echo "$pkgnam blacklisted."
+          echo $pkgnam >> $SLAPTBUILD_BLACKLIST_DB
         fi
         ;;
     esac
