@@ -189,17 +189,28 @@ install_sbo()
         downloads=""
         if [[ ! "${DOWNLOAD,,}" = "unsupported" ]]
         then
-          download=$DOWNLOAD
+          downloads=$DOWNLOAD
         elif [[ ! "${DOWNLOAD_x86_64,,}" = "unsupported" ]]
         then
-          download=$DOWNLOAD_x86_64
+          downloads=$DOWNLOAD_x86_64
         elif [[ ! "${DOWNLOAD_i586,,}" = "unsupported" ]]
         then
-          download=$DOWNLOAD_i586
+          downloads=$DOWNLOAD_i586
         elif [[ ! "${DOWNLOAD_i586,,}" = "unsupported" ]]
         then
-          download=$DOWNLOAD_i686
+          downloads=$DOWNLOAD_i686
         fi
+
+        ## remove downloaded source if success
+        arr_downloads=( $downloads )
+        for download in "${arr_downloads[@]}"
+        do
+          downloadedfile=$prgpath/${download##*/}
+          if [[ -f $downloadedfile ]]
+          then
+            rm -f $downloadedfile
+          fi
+        done
         
         wget -P $prgpath -c -t inv $download
 
@@ -231,11 +242,15 @@ install_sbo()
           fi
 
           ## remove downloaded source if success
-          arr_download=( $downloads )
-          for download in "${arr_download[@]}"
+          for download in "${arr_downloads[@]}"
           do
-            rm -f $prgpath/${download##*/}
+            downloadedfile=$prgpath/${download##*/}
+            if [[ -f $downloadedfile ]]
+            then
+              rm -f $downloadedfile
+            fi
           done
+          
           cd - &> /dev/null
         fi
       fi
