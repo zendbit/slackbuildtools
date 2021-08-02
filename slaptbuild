@@ -212,7 +212,7 @@ install_sbo()
           fi
         done
         
-        wget -P $prgpath -c -t inv $download
+        wget -P $prgpath -c -t inv $downloads
 
         # do slackbuild process
         bash $prgpath/$prgnam.SlackBuild
