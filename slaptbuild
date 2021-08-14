@@ -108,15 +108,22 @@ remove_sbo()
   echo "## removing installed package contains ${@:2}..."
   if [[ $# -ge 2 ]]
   then
+    # remove old installed buffer
+    rm -f $SLAPTBUILD_INSTALLED_DB.tmp
     for pkg in ${@:2}
     do
       while IFS=' ' read -ra line
       do
-        if [[ "${line[0]}" = "$pkg" ]]
+        prgnam=${line[0]}
+        pkgnam=${line[1]}
+        if [[ "$prgnam" = "$pkg" ]]
         then
           echo ">> remove package $pkg..."
-          /sbin/removepkg ${line[1]}
-          cat $SLAPTBUILD_INSTALLED_DB|grep -v -w $pkg|grep -e "\S" > $SLAPTBUILD_INSTALLED_DB.new
+          /sbin/removepkg $pkgnam
+          if [[ $? -eq 0 ]]
+          then
+            cat $SLAPTBUILD_INSTALLED_DB|grep -v -w $pkgnam|grep -e "\S" > $SLAPTBUILD_INSTALLED_DB.tmp
+          fi
           echo ">> finished."
         fi
       done < $SLAPTBUILD_INSTALLED_DB
@@ -124,9 +131,9 @@ remove_sbo()
   fi
 
   # udpate installed db
-  if [[ -f $SLAPTBUILD_INSTALLED_DB.new ]]
+  if [[ -f $SLAPTBUILD_INSTALLED_DB.tmp ]]
   then
-    cp $SLAPTBUILD_INSTALLED_DB.new $SLAPTBUILD_INSTALLED_DB
+    cp $SLAPTBUILD_INSTALLED_DB.tmp $SLAPTBUILD_INSTALLED_DB
   fi
 
   echo "## finished."
@@ -293,8 +300,8 @@ locked_pkg()
         if [[ -n $blacklisted ]]
         then
           echo "$pkgnam whitelisted."
-          cat $SLAPTBUILD_BLACKLIST_DB|grep -v -e "^${pkgnam}$"|grep -e "\S" > $SLAPTBUILD_BLACKLIST_DB.new
-          cp $SLAPTBUILD_BLACKLIST_DB.new $SLAPTBUILD_BLACKLIST_DB
+          cat $SLAPTBUILD_BLACKLIST_DB|grep -v -e "^${pkgnam}$"|grep -e "\S" > $SLAPTBUILD_BLACKLIST_DB.tmp
+          cp $SLAPTBUILD_BLACKLIST_DB.tmp $SLAPTBUILD_BLACKLIST_DB
         fi
         ;;
       blacklist)
