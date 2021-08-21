@@ -12,6 +12,8 @@
 ## contribution are welcome, free to modified
 ##
 
+set +e
+
 # check if run as root
 if [[ "$EUID" -ne 0 ]]
   then echo "Please run as root"
@@ -23,9 +25,6 @@ SLAPTBUILD_DIR=/usr/slaptbuild
 SLAPTBUILD_DB=$SLAPTBUILD_DIR/slackbuilds.db
 SLAPTBUILD_INSTALLED_DB=$SLAPTBUILD_DIR/slackbuilds.installed.db
 SLAPTBUILD_BLACKLIST_DB=$SLAPTBUILD_DIR/slackbuilds.blacklist.db
-OUTPUT=/tmp
-TAG=_SBo
-PKGTYPE=tgz
 
 if [[ ! -f $SLAPTBUILD_DB ]]
 then
@@ -174,6 +173,9 @@ install_sbo()
       
       if [[ "$prgnam" = "$prg" ]]
       then
+        argv0="$0"
+        BASH_ARGV0=$prgpath/$prgnam.SlackBuild
+
         # get package info
         source $prgpath/$prgnam.info
 
@@ -207,25 +209,13 @@ install_sbo()
         then
           downloads=$DOWNLOAD_i686
         fi
-
-        ## remove downloaded source if success
-        arr_downloads=( $downloads )
-        for download in "${arr_downloads[@]}"
-        do
-          downloadedfile=$prgpath/${download##*/}
-          if [[ -f $downloadedfile ]]
-          then
-            rm -f $downloadedfile
-          fi
-        done
         
         wget -P $prgpath -c -t inv $downloads
 
-        # do slackbuild process
-        bash $prgpath/$prgnam.SlackBuild
-       
+        source $prgpath/$prgnam.SlackBuild
+
         # check if package already generated
-        pkgout=`ls $OUTPUT|grep $PRGNAM-$VERSION|grep $TAG|grep $PKGTYPE|xargs`
+        pkgout=$OUTPUT/$PRGNAM-$PKGVER-$ARCH-$BUILD$TAG.$PKGTYPE
 
         # if there are no errors
         if [[ $? -eq 0 ]] && [[ -n $pkgout ]]
@@ -239,7 +229,7 @@ install_sbo()
           fi
 
           # install package if success
-          /sbin/installpkg $OUTPUT/$pkgout
+          /sbin/installpkg $pkgout
 
           ## update installed app list
           installed=$(cat $SLAPTBUILD_INSTALLED_DB|awk '{print $1 $2}'|grep -w "$prgnam $version"|grep -e "\S"|xargs)
@@ -249,6 +239,7 @@ install_sbo()
           fi
 
           ## remove downloaded source if success
+          arr_downloads=( $downloads )
           for download in "${arr_downloads[@]}"
           do
             downloadedfile=$prgpath/${download##*/}
@@ -257,9 +248,10 @@ install_sbo()
               rm -f $downloadedfile
             fi
           done
-          
-          cd - &> /dev/null
         fi
+
+        BASH_ARGV0=$argv0
+      
       fi
     done < $SLAPTBUILD_DB
   done
