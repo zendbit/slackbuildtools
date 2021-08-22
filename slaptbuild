@@ -215,7 +215,7 @@ install_sbo()
         source $prgpath/$prgnam.SlackBuild
 
         # check if package already generated
-        pkgout=$OUTPUT/$PRGNAM-$PKGVER-$ARCH-$BUILD$TAG.$PKGTYPE
+        pkgout=$OUTPUT/$PRGNAM-$VERSION-$ARCH-$BUILD$TAG.$PKGTYPE
 
         # if there are no errors
         if [[ $? -eq 0 ]] && [[ -n $pkgout ]]
