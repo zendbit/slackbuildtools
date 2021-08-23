@@ -122,17 +122,16 @@ remove_sbo()
           if [[ $? -eq 0 ]]
           then
             cat $SLAPTBUILD_INSTALLED_DB|grep -v -w $pkgnam|grep -e "\S" > $SLAPTBUILD_INSTALLED_DB.tmp
+            # udpate installed db
+            if [[ -f $SLAPTBUILD_INSTALLED_DB.tmp ]]
+            then
+              cp $SLAPTBUILD_INSTALLED_DB.tmp $SLAPTBUILD_INSTALLED_DB
+            fi
           fi
           echo ">> finished."
         fi
       done < $SLAPTBUILD_INSTALLED_DB
     done
-  fi
-
-  # udpate installed db
-  if [[ -f $SLAPTBUILD_INSTALLED_DB.tmp ]]
-  then
-    cp $SLAPTBUILD_INSTALLED_DB.tmp $SLAPTBUILD_INSTALLED_DB
   fi
 
   echo "## finished."
@@ -293,7 +292,10 @@ locked_pkg()
         then
           echo "$pkgnam whitelisted."
           cat $SLAPTBUILD_BLACKLIST_DB|grep -v -e "^${pkgnam}$"|grep -e "\S" > $SLAPTBUILD_BLACKLIST_DB.tmp
-          cp $SLAPTBUILD_BLACKLIST_DB.tmp $SLAPTBUILD_BLACKLIST_DB
+          if [[ -f $SLAPTBUILD_BLACKLIST_DB.tmp ]]
+          then
+            cp $SLAPTBUILD_BLACKLIST_DB.tmp $SLAPTBUILD_BLACKLIST_DB
+          fi
         fi
         ;;
       blacklist)
