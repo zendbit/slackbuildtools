@@ -215,7 +215,7 @@ install_sbo()
         source $prgpath/$prgnam.SlackBuild
 
         # check if package already generated
-        pkgout=$OUTPUT/$PRGNAM-$VERSION-$ARCH-$BUILD$TAG.$PKGTYPE
+        pkgout=$PRGNAM-$VERSION-$ARCH-$BUILD$TAG.$PKGTYPE
 
         # if there are no errors
         if [[ $? -eq 0 ]] && [[ -n $pkgout ]]
@@ -229,7 +229,7 @@ install_sbo()
           fi
 
           # install package if success
-          /sbin/installpkg $pkgout
+          /sbin/installpkg $OUTPUT/$pkgout
 
           ## update installed app list
           installed=$(cat $SLAPTBUILD_INSTALLED_DB|awk '{print $1 $2}'|grep -w "$prgnam $version"|grep -e "\S"|xargs)
