@@ -169,6 +169,7 @@ install_sbo()
       prgpath=${line[0]}
       prgnam=${line[1]}
       version=${line[2]}
+      PKGVER=""
       
       if [[ "$prgnam" = "$prg" ]]
       then
@@ -180,7 +181,7 @@ install_sbo()
 
         # if package has same name and version skip it
         installed=$(cat $SLAPTBUILD_INSTALLED_DB|awk '{print $1" "$2}'|grep -w "$prgnam $prgnam-$version"|xargs)
-        if [[ -n $installed ]]
+        if [[ -n $installed ]] && [[ "${@:1}" = "install" ]]
         then
           echo ">> $prgnam $version already installed."
           break
@@ -215,40 +216,47 @@ install_sbo()
 
         # check if package already generated
         pkgout=$PRGNAM-$VERSION-$ARCH-$BUILD$TAG.$PKGTYPE
-
-        # if there are no errors
-        if [[ $? -eq 0 ]] && [[ -n $pkgout ]]
+        if [[ -n $PKGVER ]]
         then
-          # check if package already installed
-          # if so do reinstall or upgrade or downgrade
-          installed=$(cat $SLAPTBUILD_INSTALLED_DB|awk '{print $1}'|grep -w "$prgnam"|xargs)
-          if [[ -n $installed ]]
-          then
-            remove_sbo "" $prgnam
-          fi
-
-          # install package if success
-          /sbin/installpkg $OUTPUT/$pkgout
-
-          ## update installed app list
-          installed=$(cat $SLAPTBUILD_INSTALLED_DB|awk '{print $1 $2}'|grep -w "$prgnam $version"|grep -e "\S"|xargs)
-          if [[ -z $installed ]]
-          then
-            echo $PRGNAM $pkgout >> $SLAPTBUILD_INSTALLED_DB
-          fi
-
-          ## remove downloaded source if success
-          arr_downloads=( $downloads )
-          for download in "${arr_downloads[@]}"
-          do
-            downloadedfile=$prgpath/${download##*/}
-            if [[ -f $downloadedfile ]]
-            then
-              rm -f $downloadedfile
-            fi
-          done
+          pkgout=$PRGNAM-$PKGVER-$ARCH-$BUILD$TAG.$PKGTYPE
         fi
 
+        # pkg path
+        if [[ -f $OUTPUT/$pkgout ]]
+        then
+          # if there are no errors
+          if [[ $? -eq 0 ]] && [[ -n $pkgout ]]
+          then
+            # check if package already installed
+            # if so do reinstall or upgrade or downgrade
+            installed=$(cat $SLAPTBUILD_INSTALLED_DB|awk '{print $1}'|grep -w "$prgnam"|xargs)
+            if [[ -n $installed ]]
+            then
+              remove_sbo "" $prgnam
+            fi
+
+            # install package if success
+            /sbin/installpkg $OUTPUT/$pkgout
+
+            ## update installed app list
+            installed=$(cat $SLAPTBUILD_INSTALLED_DB|awk '{print $1 $2}'|grep -w "$prgnam $version"|grep -e "\S"|xargs)
+            if [[ -z $installed ]]
+            then
+              echo $PRGNAM $pkgout >> $SLAPTBUILD_INSTALLED_DB
+            fi
+
+            ## remove downloaded source if success
+            arr_downloads=( $downloads )
+            for download in "${arr_downloads[@]}"
+            do
+              downloadedfile=$prgpath/${download##*/}
+              if [[ -f $downloadedfile ]]
+              then
+                rm -f $downloadedfile
+              fi
+            done
+          fi
+        fi
         BASH_ARGV0=$argv0
       
       fi
@@ -369,6 +377,7 @@ manual ()
   echo "  update      : update git from slaptbuild then rebuild the db, ex: slaptbuild update"
   echo "  search      : search package(s), ex: slaptbuild search zoom-linux xfce4 etc."
   echo "  install     : install package(s), ex: slaptbuild install zoom-linux xfce4 etc."
+  echo "  reinstall   : reinstall package(s), ex: slaptbuild reinstall zoom-linux xfce4 etc."
   echo "  installpkg  : install package(s) directly .tgz .txz."
   echo "  remove      : remove package(s), ex: slaptbuild remove zoom-linux xfce4 etc."
   echo "  info        : show package info, ex: slaptbuild info zoom-linux"
@@ -391,6 +400,9 @@ case $1 in
     info_sbo $2
     ;;
   install)
+    install_sbo $@
+    ;;
+  reinstall)
     install_sbo $@
     ;;
   installpkg)
