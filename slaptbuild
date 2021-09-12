@@ -181,7 +181,7 @@ install_sbo()
 
         # if package has same name and version skip it
         installed=$(cat $SLAPTBUILD_INSTALLED_DB|awk '{print $1" "$2}'|grep -w "$prgnam $prgnam-$version"|xargs)
-        if [[ -n $installed ]] && [[ "${@:1}" = "install" ]]
+        if [[ -n $installed ]] && [[ "$1" = "install" ]]
         then
           echo ">> $prgnam $version already installed."
           break
