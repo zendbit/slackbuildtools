@@ -45,13 +45,13 @@ update_sbo()
 {
   if [[ ! -d $SLACKBUILD_DIR ]]
   then
-    echo "## get current slackbuild tree from https://github.com/SlackBuildsOrg/slackbuilds.git..."
+    echo "## get current slackbuild tree from git://git.slackbuilds.org/slackbuilds.git..."
     cd /usr
-    git clone https://github.com/SlackBuildsOrg/slackbuilds.git
+    git clone git://git.slackbuilds.org/slackbuilds.git
     cd - &> /dev/null
     echo "## finished."
   else
-    echo "## pulling current slackbuild tree from https://github.com/SlackBuildsOrg/slackbuilds.git..."
+    echo "## pulling current slackbuild tree from git://git.slackbuilds.org/slackbuilds.git..."
     cd $SLACKBUILD_DIR
     git pull
     cd - &> /dev/null
