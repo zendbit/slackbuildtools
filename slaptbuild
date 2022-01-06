@@ -26,6 +26,11 @@ SLAPTBUILD_DB=$SLAPTBUILD_DIR/slackbuilds.db
 SLAPTBUILD_INSTALLED_DB=$SLAPTBUILD_DIR/slackbuilds.installed.db
 SLAPTBUILD_BLACKLIST_DB=$SLAPTBUILD_DIR/slackbuilds.blacklist.db
 
+if [[ ! -d $SLAPTBUILD_DIR ]]
+then
+  mkdir $SLAPTBUILD_DIR
+fi
+
 if [[ ! -f $SLAPTBUILD_DB ]]
 then
   touch $SLAPTBUILD_DB
