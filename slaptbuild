@@ -178,6 +178,7 @@ install_sbo()
       
       if [[ "$prgnam" = "$prg" ]]
       then
+	cd $prgpath
         argv0="$0"
         BASH_ARGV0=$prgpath/$prgnam.SlackBuild
 
@@ -220,11 +221,11 @@ install_sbo()
         source $prgpath/$prgnam.SlackBuild
 
         # check if package already generated
-        pkgout=$PRGNAM-$VERSION-$ARCH-$BUILD$TAG.$PKGTYPE
-        if [[ -n $PKGVER ]]
-        then
-          pkgout=$PRGNAM-$PKGVER-$ARCH-$BUILD$TAG.$PKGTYPE
-        fi
+        pkgout=$PRGNAM-${PKGVER:-$VERSION}-$ARCH-$BUILD$TAG.${PKGTYPE:-tgz}
+        #if [[ -n $PKGVER ]]
+        #then
+        #  pkgout=$PRGNAM-$PKGVER-$ARCH-$BUILD$TAG.${PKGTYPE:-tgz}
+        #fi
 
         # pkg path
         if [[ -f $OUTPUT/$pkgout ]]
@@ -263,7 +264,7 @@ install_sbo()
           fi
         fi
         BASH_ARGV0=$argv0
-      
+        cd -
       fi
     done < $SLAPTBUILD_DB
   done
