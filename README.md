@@ -44,8 +44,8 @@ slaptbuild update
 
 ### example install inkscape from slackbuilds.org
 ```
-slaptbuild install dos2unix double-conversion potrace gdl inkscape
+slaptbuild install inkscape
 ```
 ### what todo next?
-- resolving dependencies when installing package, any suggestion? using formula like homebrew?
+- *DONE* resolving dependencies when installing package, any suggestion? using formula like homebrew? (done with checking depedencies by read REQUIRES in .info file)
 - this version only support for slackware current (slackbuilds master) aka rolling release
