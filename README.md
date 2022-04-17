@@ -2,6 +2,15 @@
 slaptbuild is simple wrapper for managing slackbuild.org tree. This application not offically related with slackbuild.org
 
 ### installation
+
+#### using .tgz package
+grab latest version from the release tag https://github.com/zendbit/slaptbuild/releases
+install using installpkg command
+```
+# installpkg slaptbuild-x.x.x-x86_64-arros.tgz
+```
+
+#### manual installation
 the installation not required headache dependencies only need extract tool (tar), wget, git, sed, grep
 - dowload source
 - copy file to /usr/sbin/
