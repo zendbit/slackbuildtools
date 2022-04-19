@@ -46,6 +46,55 @@ then
   touch $SLAPTBUILD_BLACKLIST_DB
 fi
 
+readarray -t slaptbuild_db_arr <<< $SLAPTBUILD_DB
+readarray -t slaptbuild_installed_db_arr <<< $SLAPTBUILD_INSTALLED_DB
+readarray -t slaptbuild_blacklist_db_arr <<< $SLAPTBUILD_BLACKLIST_DB
+
+## get options parameter from argument
+get_options()
+{
+  opt=""
+  for p in ${@:1}
+  do
+    if [[ $p =~ ^\- ]]
+    then
+      opt="$opt $p"
+    fi
+  done
+
+  echo $opt
+}
+
+## get parameter non optional from argument
+get_params()
+{
+  param=""
+  for p in ${@:1}
+  do
+    if [[ ! $p =~ ^\- ]]
+    then
+      param="$param $p"
+    fi
+  done
+
+  echo $param
+}
+
+## check first parameter is in the rest of parameter
+check_options()
+{
+  res="false"
+  for p in ${@:2}
+  do
+    if [[ $1 = $p ]]
+    then
+      res="true"
+      break
+    fi
+  done
+  echo $res
+}
+
 update_sbo()
 {
   if [[ ! -d $SLACKBUILD_DIR ]]
@@ -109,6 +158,9 @@ info_sbo()
 
 remove_sbo()
 {
+  opt=$(get_options "${@:2}")
+  params=$(get_params "${@:2}")
+  
   # check depedencies and save it to pkgs_toremove variable
   echo "## checking depedencies for: ${@:2}"
   check_rempkgdeps_sbo ${@:2}
@@ -119,10 +171,13 @@ remove_sbo()
     echo "## invalid pkg(s): $pkgs_toremove_invalid"
   fi
 
-  read -p "remove pkg(s) (y/n): " confirm
-  if [[ ! -z $confirm  ]] && [[ $confirm = "n" || $confirm = "N" ]]
+  if [[ ! $(check_options "-y" $opt) = "true" ]]
   then
-    exit
+    read -p "remove pkg(s) (y/n): " confirm
+    if [[ ! -z $confirm  ]] && [[ $confirm = "n" || $confirm = "N" ]]
+    then
+      exit
+    fi
   fi
 
   # split to array
@@ -184,27 +239,33 @@ install_pkg()
 
 install_sbo()
 {
-  # check depedencies and save it to pkgs_toinstall variable
-  echo "## checking depedencies for: ${@:2}"
-  check_pkgdeps_sbo ${@:2}
+  opt=$(get_options "${@:2}")
+  params=$(get_params "${@:2}")
 
-  echo "## install pkg(s) contains: $pkgs_toinstall..."
+  # check depedencies and save it to pkgs_toinstall variable
+  echo "## checking depedencies for: ${params[@]}"
+  check_pkgdeps_sbo $params
+
+  echo "## install pkg(s) contains: $pkgs_toinstall"
   if [[ ! -z $pkgs_toinstall_invalid ]]
   then
     echo "## invalid pkg(s): $pkgs_toinstall_invalid"
   fi
   
-  read -p "install pkg(s) (y/n): " confirm
-  if [[ ! -z $confirm  ]] && [[ $confirm = "n" || $confirm = "N" ]]
+  if [[ ! $(check_options "-y" $opt) = "true" ]]
   then
-    exit
+    read -p "install pkg(s) (y/n): " confirm
+    if [[ ! -z $confirm  ]] && [[ $confirm = "n" || $confirm = "N" ]]
+    then
+      exit
+    fi
   fi
 
   # split to array
   pkgs=($pkgs_toinstall)
 
   # install all packages with depedencies in pkgs array
-  for prg in ${pkgs[@]}
+  for prg in ${params[@]}
   do
     pkg=`cat $SLAPTBUILD_DB|grep " $prg "`
     if [[ ! -z $pkg ]]
@@ -275,7 +336,7 @@ install_sbo()
           installed=$(cat $SLAPTBUILD_INSTALLED_DB|awk '{print $1}'|grep -w "$prgnam"|xargs)
           if [[ -n $installed ]]
           then
-            remove_sbo "" $prgnam
+            remove_sbo "-y" $prgnam
           fi
 
           # install package if success
@@ -375,6 +436,7 @@ check_rempkgdeps_sbo()
       # get package info
       source $prgpath/$prgnam.info
       
+      # add remove package only if don't have depencies to other installed pkgs 
       pkgs_toremove=`echo "$prg $pkgs_toremove" | awk '{for (i=1;i<=NF;i++) if (!a[$i]++) printf("%s%s",$i,FS)}{printf("\n")}'`
       
       # check depedencies from REQUIRES variable from .info file
