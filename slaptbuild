@@ -176,6 +176,7 @@ remove_sbo()
   then
     echo "## checking depedencies for: $params"
     check_rempkgdeps_sbo $params
+    cleanup_pkgs_toremove_sbo
 
     echo "## removing installed pkg(s) contains: $pkgs_toremove $pkgs_base_toremove"
     if [[ ! -z $pkgs_toremove_invalid ]]
@@ -434,6 +435,76 @@ check_pkgdeps_sbo()
 pkgs_toremove=""
 pkgs_toremove_invalid=""
 
+cleanup_pkgs_toremove_sbo()
+{
+  # collect depedencies
+  installed_deps=""
+  removed_deps=""
+  clean_deps=""
+  pkgs_installed=`cat $SLAPTBUILD_INSTALLED_DB|awk '{print $1}'`
+  for installed in ${pkgs_installed[@]}
+  do
+    cleanstr=`echo $installed|xargs`
+    installed_pkg_detail=`cat $SLAPTBUILD_DB|awk /" $cleanstr "/`
+    if [[ ! -z $installed_pkg_detail ]]
+    then
+      installed_pkg_requires=($installed_pkg_detail)
+      installed_pkg_deps=`cat ${installed_pkg_requires[0]}/${installed_pkg_requires[1]}.info|grep -oP 'REQUIRES="\K.*?(?=")'`
+      if [[ ! -z $installed_pkg_deps ]]
+      then
+        for pkg_base in ${pkgs_base_toremove[@]}
+        do
+          if [[ ! $(echo $pkg_base|xargs) = $cleanstr ]]
+          then
+            installed_deps=`echo "$installed_pkg_deps $installed_deps" | awk '{for (i=1;i<=NF;i++) if (!a[$i]++) printf("%s%s",$i,FS)}{printf("\n")}'`
+          #else
+          #  echo $pkg_base
+           #removed_deps=`echo "$installed_pkg_deps $removed_deps" | awk '{for (i=1;i<=NF;i++) if (!a[$i]++) printf("%s%s",$i,FS)}{printf("\n")}'`
+          fi
+        done
+      fi
+    fi
+  done
+  
+  for pkg_base in ${pkgs_base_toremove[@]}
+  do
+    cleanstr=`echo $pkg_base|xargs`
+    pkg_base_detail=`cat $SLAPTBUILD_DB|awk /" $cleanstr "/`
+    if [[ ! -z $pkg_base_detail ]]
+    then
+      pkg_base_requires=($pkg_base_detail)
+      pkg_base_deps=`cat ${pkg_base_requires[0]}/${pkg_base_requires[1]}.info|grep -oP 'REQUIRES="\K.*?(?=")'`
+      if [[ ! -z $pkg_base_deps ]]
+      then
+        for pkg_base in ${pkgs_base_toremove[@]}
+        do
+          removed_deps=`echo "$pkg_base_deps $removed_deps" | awk '{for (i=1;i<=NF;i++) if (!a[$i]++) printf("%s%s",$i,FS)}{printf("\n")}'`
+        done
+      fi
+    fi
+  done
+  
+  for remd in ${removed_deps[@]}
+  do
+    found_deps=""
+    for insd in ${installed_deps[@]}
+    do
+      if [[ $(echo $remd|xargs) = $(echo $insd|xargs) ]]
+      then
+        found_deps="yes"
+        break
+      fi
+    done
+
+    if [[ -z $found_deps ]]
+    then
+      clean_deps=`echo "$clean_deps $remd" | awk '{for (i=1;i<=NF;i++) if (!a[$i]++) printf("%s%s",$i,FS)}{printf("\n")}'`
+    fi
+  done
+
+  pkgs_toremove=$clean_deps
+}
+
 check_rempkgdeps_sbo()
 {
   for prg in ${@}
@@ -468,8 +539,8 @@ check_rempkgdeps_sbo()
             do
               if [[ ! $installed = $pkg_base ]]
               then
-                echo $installed
-                installed_pkg_detail=`awk /" $installed "/ < $SLAPTBUILD_DB`
+                cleanstr=`echo $installed|xargs`
+                installed_pkg_detail=`cat $SLAPTBUILD_DB|awk /" $cleanstr "/`
                 if [[ ! -z $installed_pkg_detail ]]
                 then
                   installed_pkg_requires=($installed_pkg_detail)
@@ -499,7 +570,6 @@ check_rempkgdeps_sbo()
               done
             fi
           fi
-          echo "step 1"
         done
       else
         pkgs_toremove=`echo "$prg $pkgs_toremove" | awk '{for (i=1;i<=NF;i++) if (!a[$i]++) printf("%s%s",$i,FS)}{printf("\n")}'`
@@ -517,40 +587,6 @@ check_rempkgdeps_sbo()
         done
         unset IFS
       fi
-
-      cleanup_pkgs_toremove=""
-      for pkg_toremove in ${pkgs_toremove[@]}
-      do
-        pkgs_installed=`cat $SLAPTBUILD_INSTALLED_DB|awk '{print $1}'`
-        for installed in ${pkgs_installed[@]}
-        do
-          installed_pkg_detail=`awk /" $installed "/ < $SLAPTBUILD_DB`
-          if [[ ! -z $installed_pkg_detail ]]
-          then
-            for pkg_base in ${pkgs_base_toremove[@]}
-            do
-              installed_pkg_requires=($installed_pkg_detail)
-              installed_pkg_deps=`cat ${installed_pkg_requires[0]}/${installed_pkg_requires[1]}.info|grep -oP 'REQUIRES="\K.*?(?=")'`
-              if [[ ! -z $installed_pkg_deps ]]
-              then
-                if [[ ! $pkg_base = $installed ]]
-                then
-                  check_deps=($installed_pkg_deps)
-                  for dep in ${check_deps[@]}
-                  do
-                    if [[ ! $pkg_toremove = $dep ]]
-                    then
-                      cleanup_pkgs_toremove=`echo "$pkg_toremove $cleanup_pkgs_toremove" | awk '{for (i=1;i<=NF;i++) if (!a[$i]++) printf("%s%s",$i,FS)}{printf("\n")}'`
-                    fi
-                  done
-                fi
-              fi
-            done
-          fi
-        done < $SLAPTBUILD_INSTALLED_DB
-      done
-
-      pkgs_toremove=$cleanup_pkgs_toremove
 
       BASH_ARGV0=$argv0
       cd - &> /dev/null
