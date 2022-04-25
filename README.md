@@ -37,6 +37,7 @@ options:
   install     : install package(s), ex: slaptbuild install zoom-linux xfce4 etc.
   reinstall   : reinstall package(s), ex: slaptbuild reinstall zoom-linux xfce4 etc.
   installpkg  : install package(s) directly .tgz .txz.
+  upgradepkg  : upgrade package(s) directly .tgz .txz.
   remove      : remove package(s), ex: slaptbuild remove zoom-linux xfce4 etc.
   info        : show package info, ex: slaptbuild info zoom-linux
   installed   : show installed package(s), ex: slaptbuild installed [xfce4 zoom-linux etc]
