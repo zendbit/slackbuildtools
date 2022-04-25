@@ -251,6 +251,29 @@ install_pkg()
   echo "## finished."
 }
 
+upgrade_pkg()
+{
+  echo "## installing ${@:2}"
+  for pkg in ${@:2}
+  do
+    if [[ -f $pkg ]]
+    then
+      remove_sbo "-u" "-y" $pkg
+      installpkg $pkg
+      if [[ $? -eq 0 ]]
+      then
+        pkgnam=`basename $pkg|xargs`
+        prgnam=`sed 's/\-[0-9]\+\.[0-9]\+.*$//g' <<< $pkgnam|xargs`
+        if [[ $? -eq 0 ]] && [[ -n $prgnam ]] && [[ -n $pkgnam ]]
+        then
+          echo $prgnam $pkgnam >> $SLAPTBUILD_INSTALLED_DB
+        fi
+      fi
+    fi
+  done
+  echo "## finished."
+}
+
 install_sbo()
 {
   PRINT_PACKAGE_NAME=""
@@ -723,6 +746,7 @@ manual ()
   echo "  reinstall     : reinstall package(s), ex: slaptbuild reinstall zoom-linux xfce4 etc."
   echo "  reinstall-all : reinstall all package(s), ex: slaptbuild reinstall-all."
   echo "  installpkg    : install package(s) directly .tgz .txz."
+  echo "  upgradepkg    : upgrade package(s) directly .tgz .txz."
   echo "  remove        : remove package(s), ex: slaptbuild remove zoom-linux xfce4 etc."
   echo "  info          : show package info, ex: slaptbuild info zoom-linux"
   echo "  installed     : show installed package(s), ex: slaptbuild installed [xfce4 zoom-linux etc]"
@@ -754,6 +778,9 @@ case $1 in
     ;;
   installpkg)
     install_pkg $@
+    ;;
+  upgradepkg)
+    upgrade_pkg $@
     ;;
   installed)
     installed_sbo $@
