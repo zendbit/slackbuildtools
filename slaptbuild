@@ -161,9 +161,9 @@ is_checked_base_pkgs_deps=""
 
 remove_sbo()
 {
-  unset pkgs_totemove
-  unset pkgs_toremove_invalid
-  unset pkgs_base_toremove
+  pkgs_totemove=""
+  pkgs_toremove_invalid=""
+  pkgs_base_toremove=""
   is_checked_base_pkgs_deps=""
   
   opt=$(get_options "${@:2}")
@@ -277,8 +277,8 @@ upgrade_pkg()
 install_sbo()
 {
   PRINT_PACKAGE_NAME=""
-  unset pkgs_toinstall
-  unset pkgs_toinstall_invalid
+  pkgs_toinstall=""
+  pkgs_toinstall_invalid=""
 
   opt=$(get_options "${@:2}")
   params=$(get_params "${@:2}")
