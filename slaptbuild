@@ -340,19 +340,42 @@ install_sbo()
       fi
 
       # download source for build process
+      # downloads=""
+      #if [[ ! "${DOWNLOAD,,}" = "unsupported" ]]
+      #then
+      #  downloads=$DOWNLOAD
+      #if [[ ! "${DOWNLOAD_x86_64,,}" = "unsupported" ]]
+      #then
+      #  downloads=$DOWNLOAD_x86_64
+      #if [[ ! "${DOWNLOAD_i586,,}" = "unsupported" ]]
+      #then
+      #  downloads=$DOWNLOAD_i586
+      #if [[ ! "${DOWNLOAD_i586,,}" = "unsupported" ]]
+      #then
+      #  downloads=$DOWNLOAD_i686
+      #fi
+
       downloads=""
-      if [[ ! "${DOWNLOAD,,}" = "unsupported" ]]
-      then
-        downloads=$DOWNLOAD
-      elif [[ ! "${DOWNLOAD_x86_64,,}" = "unsupported" ]]
+      if [[ $(uname -m) = "x86_64" ]]
       then
         downloads=$DOWNLOAD_x86_64
-      elif [[ ! "${DOWNLOAD_i586,,}" = "unsupported" ]]
+      elif [[ $(uname -m) = "i586" ]]
       then
         downloads=$DOWNLOAD_i586
-      elif [[ ! "${DOWNLOAD_i586,,}" = "unsupported" ]]
+      elif [[ $(uname -m) = "i686" ]]
       then
         downloads=$DOWNLOAD_i686
+      elif [[ $(uname -m) = "arm" ]]
+      then
+        downloads=$DOWNLOAD_arm
+      elif [[ $(uname -m) = "arm64" ]]
+      then
+        downloads=$DOWNLOAD_arm64
+      fi
+
+      if [[ -z $downloads ]]
+      then
+        downloads=$DOWNLOAD
       fi
       
       wget -P $prgpath -c -t inv $downloads
