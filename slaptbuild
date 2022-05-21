@@ -197,7 +197,7 @@ remove_sbo()
   # split to array
   pkgs=($pkgs_toremove $pkgs_base_toremove)
 
-  if [[ $# -ge 2 ]]
+  if [[ ! -z $# ]] && [[ $# -ge 2 ]]
   then
     # remove old installed buffer
     rm -f $SLAPTBUILD_INSTALLED_DB.tmp
@@ -710,7 +710,7 @@ locked_pkg()
 blacklisted_pkg()
 {
   echo "## finding blacklisted pkg(s) contains: ${@:2}"
-  if [[ $# -lt 2 ]]
+  if [[ ! -z $# ]] && [[ $# -lt 2 ]]
   then
     while IFS= read -r line
     do
@@ -734,7 +734,7 @@ blacklisted_pkg()
 installed_sbo()
 {
   echo "## finding installed pkg(s) contains ${@:2}"
-  if [[ $# -lt 2 ]]
+  if [[ ! -z $# ]] && [[ $# -lt 2 ]]
   then
     while IFS= read -r line
     do
