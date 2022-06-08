@@ -132,9 +132,12 @@ search_sbo()
   do
     while IFS=' ' read -ra line
     do
-      if [[ "${line,,}" =~ .*"${param,,}".* ]]
+      if [[ ! -z $line ]]
       then
-        echo ">> ${line[1]} ${line[2]} ${line[0]}"
+        if [[ "${line,,}" =~ .*"${param,,}".* ]]
+        then
+          echo ">> ${line[1]} ${line[2]} ${line[0]}"
+        fi
       fi
     done < $SLAPTBUILD_DB
   done
@@ -205,22 +208,25 @@ remove_sbo()
     do
       while IFS=' ' read -ra line
       do
-        prgnam=${line[0]}
-        pkgnam=${line[1]}
-        if [[ "$prgnam" = "$pkg" ]]
+        if [[ ! -z $line ]]
         then
-          echo ">> remove package $pkg..."
-          /sbin/removepkg $pkgnam
-          if [[ $? -eq 0 ]]
+          prgnam=${line[0]}
+          pkgnam=${line[1]}
+          if [[ "$prgnam" = "$pkg" ]]
           then
-            cat $SLAPTBUILD_INSTALLED_DB|grep -v -w $pkgnam|grep -e "\S" > $SLAPTBUILD_INSTALLED_DB.tmp
-            # udpate installed db
-            if [[ -f $SLAPTBUILD_INSTALLED_DB.tmp ]]
+            echo ">> remove package $pkg..."
+            /sbin/removepkg $pkgnam
+            if [[ $? -eq 0 ]]
             then
-              cp $SLAPTBUILD_INSTALLED_DB.tmp $SLAPTBUILD_INSTALLED_DB
+              cat $SLAPTBUILD_INSTALLED_DB|grep -v -w $pkgnam|grep -e "\S" > $SLAPTBUILD_INSTALLED_DB.tmp
+              # udpate installed db
+              if [[ -f $SLAPTBUILD_INSTALLED_DB.tmp ]]
+              then
+                cp $SLAPTBUILD_INSTALLED_DB.tmp $SLAPTBUILD_INSTALLED_DB
+              fi
             fi
+            echo ">> finished."
           fi
-          echo ">> finished."
         fi
       done < $SLAPTBUILD_INSTALLED_DB
     done
@@ -355,20 +361,21 @@ install_sbo()
       #  downloads=$DOWNLOAD_i686
       #fi
 
+      ARCH=$( uname -m )
       downloads=""
-      if [[ $(uname -m) = "x86_64" ]]
+      if [[ $ARCH = "x86_64" ]]
       then
         downloads=$DOWNLOAD_x86_64
-      elif [[ $(uname -m) = "i586" ]]
+      elif [[ $ARCH = "i586" ]]
       then
         downloads=$DOWNLOAD_i586
-      elif [[ $(uname -m) = "i686" ]]
+      elif [[ $ARCH = "i686" ]]
       then
         downloads=$DOWNLOAD_i686
-      elif [[ $(uname -m) = "arm" ]]
+      elif [[ $ARCH = "arm" ]]
       then
         downloads=$DOWNLOAD_arm
-      elif [[ $(uname -m) = "arm64" ]]
+      elif [[ $ARCH = "arm64" ]]
       then
         downloads=$DOWNLOAD_arm64
       fi
@@ -647,8 +654,11 @@ upgrade_sbo()
   echo "## upgrade installed pkg(s)"
   while IFS= read -r line
   do
-    pkg=(${line[0]})
-    install_sbo "install" ${pkg[0]}
+    if [[ ! -z $line ]]
+    then
+      pkg=(${line[0]})
+      install_sbo "install" ${pkg[0]}
+    fi
   done < $SLAPTBUILD_INSTALLED_DB
   echo "## finished."
 }
@@ -658,8 +668,11 @@ reinstall_all_sbo()
   echo "## reinstall installed pkg(s)"
   while IFS= read -r line
   do
-    pkg=(${line[0]})
-    install_sbo "reinstall" ${pkg[0]}
+    if [[ ! -z $line ]]
+    then
+      pkg=(${line[0]})
+      install_sbo "reinstall" ${pkg[0]}
+    fi
   done < $SLAPTBUILD_INSTALLED_DB
   echo "## finished."
 }
@@ -714,16 +727,22 @@ blacklisted_pkg()
   then
     while IFS= read -r line
     do
-      echo ">> $line"
+      if [[ ! -z $line ]]
+      then
+        echo ">> $line"
+      fi
     done < $SLAPTBUILD_BLACKLIST_DB
   else
     for pkg in ${@:2}
     do
       while IFS= read -r line
       do
-        if [[ "${line,,}" =~ .*"${pkg,,}".* ]]
+        if [[ ! -z $line ]]
         then
-          echo ">> $line"
+          if [[ "${line,,}" =~ .*"${pkg,,}".* ]]
+          then
+            echo ">> $line"
+          fi
         fi
       done < $SLAPTBUILD_BLACKLIST_DB
     done
@@ -738,16 +757,22 @@ installed_sbo()
   then
     while IFS= read -r line
     do
-      echo ">> $line"
+      if [[ ! -z $line ]]
+      then
+        echo ">> $line"
+      fi
     done < $SLAPTBUILD_INSTALLED_DB
   else
     for pkg in ${@:2}
     do
       while IFS= read -r line
       do
-        if [[ "${line,,}" =~ .*"${pkg,,}".* ]]
+        if [[ ! -z $line ]]
         then
-          echo ">> $line"
+          if [[ "${line,,}" =~ .*"${pkg,,}".* ]]
+          then
+            echo ">> $line"
+          fi
         fi
       done < $SLAPTBUILD_INSTALLED_DB
     done
