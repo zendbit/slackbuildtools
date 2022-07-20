@@ -208,7 +208,7 @@ remove_sbo()
     do
       while IFS=' ' read -ra line
       do
-        if [[ ! -z $line ]]
+        if [[ ${#line[@]} -ge 2 ]] && [[ ! -z $line ]] && [[ ! -z ${line[0]} ]] && [[ ! -z  ${line[1]} ]]
         then
           prgnam=${line[0]}
           pkgnam=${line[1]}
@@ -275,6 +275,19 @@ upgrade_pkg()
           echo $prgnam $pkgnam >> $SLAPTBUILD_INSTALLED_DB
         fi
       fi
+    fi
+  done
+  echo "## finished."
+}
+
+remove_pkg()
+{
+  echo "## remove pkg ${@:2}"
+  for pkg in ${@:2}
+  do
+    if [[ -f $pkg ]]
+    then
+      remove_sbo "-u" $pkg
     fi
   done
   echo "## finished."
@@ -404,7 +417,7 @@ install_sbo()
         then
           # check if package already installed
           # if so do reinstall or upgrade or downgrade
-          installed=$(cat $SLAPTBUILD_INSTALLED_DB|awk '{print $1}'|grep -w "$prgnam"|xargs)
+          installed=$(cat $SLAPTBUILD_INSTALLED_DB|awk '{print $1}'|grep -e "^{$prgnam}$"|xargs)
           if [[ -n $installed ]]
           then
             remove_sbo "-u" "-y" $prgnam
@@ -795,6 +808,7 @@ manual ()
   echo "  reinstall-all : reinstall all package(s), ex: slaptbuild reinstall-all."
   echo "  installpkg    : install package(s) directly .tgz .txz."
   echo "  upgradepkg    : upgrade package(s) directly .tgz .txz."
+  echo "  removepkg     : remove package(s) directly without dependencies check."
   echo "  remove        : remove package(s), ex: slaptbuild remove zoom-linux xfce4 etc."
   echo "  info          : show package info, ex: slaptbuild info zoom-linux"
   echo "  installed     : show installed package(s), ex: slaptbuild installed [xfce4 zoom-linux etc]"
@@ -829,6 +843,9 @@ case $1 in
     ;;
   upgradepkg)
     upgrade_pkg $@
+    ;;
+  removepkg)
+    remove_pkg $@
     ;;
   installed)
     installed_sbo $@
