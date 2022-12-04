@@ -169,10 +169,10 @@ remove_sbo()
   pkgs_base_toremove=""
   is_checked_base_pkgs_deps=""
   
-  opt=$(get_options "${@:2}")
+  opt=$(get_options "${@:1}")
   params=$(get_params "${@:2}")
   pkgs_base_toremove=$params
-  
+
   # check depedencies and save it to pkgs_toremove variable
   # if -u or upgrade or reinstall dont check depedencies
   if [[ ! $(check_options "-u" $opt) = "true" ]]
@@ -285,10 +285,7 @@ remove_pkg()
   echo "## remove pkg ${@:2}"
   for pkg in ${@:2}
   do
-    if [[ -f $pkg ]]
-    then
-      remove_sbo "-u" $pkg
-    fi
+    remove_sbo "-u" $pkg
   done
   echo "## finished."
 }
@@ -299,7 +296,7 @@ install_sbo()
   pkgs_toinstall=""
   pkgs_toinstall_invalid=""
 
-  opt=$(get_options "${@:2}")
+  opt=$(get_options "${@:1}")
   params=$(get_params "${@:2}")
 
   # check depedencies and save it to pkgs_toinstall variable
