@@ -191,7 +191,7 @@ remove_sbo()
   if [[ ! $(check_options "-y" $opt) = "true" ]]
   then
     read -p "remove pkg(s) (y/n): " confirm
-    if [[ ! -z $confirm  ]] && [[ $confirm = "n" || $confirm = "N" ]]
+    if [[ -z $confirm  ]] || [[ "$confirm" != "y" && "$confirm" != "Y" ]]
     then
       exit
     fi
@@ -312,7 +312,7 @@ install_sbo()
   if [[ ! $(check_options "-y" $opt) = "true" ]]
   then
     read -p "install pkg(s) (y/n): " confirm
-    if [[ ! -z $confirm  ]] && [[ $confirm = "n" || $confirm = "N" ]]
+    if [[ -z $confirm  ]] || [[ "$confirm" != "y" && "$confirm" != "Y" ]]
     then
       exit
     fi
@@ -414,8 +414,8 @@ install_sbo()
         then
           # check if package already installed
           # if so do reinstall or upgrade or downgrade
-          installed=$(cat $SLAPTBUILD_INSTALLED_DB|awk '{print $1}'|grep -e "^{$prgnam}$"|xargs)
-          if [[ -n $installed ]]
+          installed=$(cat $SLAPTBUILD_INSTALLED_DB|awk '{print $1}'|grep -e "^$prgnam$"|xargs)
+	  if [[ -n $installed ]]
           then
             remove_sbo "-u" "-y" $prgnam
           fi
