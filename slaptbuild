@@ -667,7 +667,7 @@ upgrade_sbo()
     if [[ ! -z $line ]]
     then
       pkg=(${line[0]})
-      install_sbo "install" ${pkg[0]}
+      install_sbo "install" "-y" ${pkg[0]}
     fi
   done < $SLAPTBUILD_INSTALLED_DB
   echo "## finished."
@@ -681,7 +681,7 @@ reinstall_all_sbo()
     if [[ ! -z $line ]]
     then
       pkg=(${line[0]})
-      install_sbo "reinstall" ${pkg[0]}
+      install_sbo "reinstall" "-y" ${pkg[0]}
     fi
   done < $SLAPTBUILD_INSTALLED_DB
   echo "## finished."
