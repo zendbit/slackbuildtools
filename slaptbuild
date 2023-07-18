@@ -20,8 +20,8 @@ if [[ "$EUID" -ne 0 ]]
   exit
 fi
 
-SLACKBUILD_DIR=/usr/slackbuilds
-SLAPTBUILD_DIR=/usr/slaptbuild
+SLACKBUILD_DIR=/var/slackbuilds
+SLAPTBUILD_DIR=/var/slaptbuild
 SLAPTBUILD_DB=$SLAPTBUILD_DIR/slackbuilds.db
 SLAPTBUILD_INSTALLED_DB=$SLAPTBUILD_DIR/slackbuilds.installed.db
 SLAPTBUILD_BLACKLIST_DB=$SLAPTBUILD_DIR/slackbuilds.blacklist.db
@@ -100,7 +100,7 @@ update_sbo()
   if [[ ! -d $SLACKBUILD_DIR ]]
   then
     echo "## get current slackbuild tree from https://github.com/SlackBuildsOrg/slackbuilds.git..."
-    cd /usr
+    cd /var
     git clone https://github.com/SlackBuildsOrg/slackbuilds.git
     cd - &> /dev/null
     echo "## finished."
